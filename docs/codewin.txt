@@ -1,0 +1,97 @@
+Set-ExecutionPolicy Bypass -Scope Process -Force
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+$ErrorActionPreference = "Stop"
+$TempDir = "C:\TempBotInstall"
+$BotDir = "C:\bots\botdiscord"
+
+New-Item -ItemType Directory -Force -Path $TempDir | Out-Null
+New-Item -ItemType Directory -Force -Path "C:\bots" | Out-Null
+
+Write-Host "==> Cai Visual C++ Redistributable..."
+Invoke-WebRequest "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "$TempDir\vc_redist.x64.exe"
+Start-Process "$TempDir\vc_redist.x64.exe" -ArgumentList "/install /quiet /norestart" -Wait
+
+Write-Host "==> Cai Python 3.12.10..."
+Invoke-WebRequest "https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe" -OutFile "$TempDir\python.exe"
+Start-Process "$TempDir\python.exe" -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_launcher=1 Include_pip=1 Include_test=0" -Wait
+
+Write-Host "==> Tai Git moi nhat..."
+$gitRelease = Invoke-RestMethod "https://api.github.com/repos/git-for-windows/git/releases/latest"
+$gitAsset = $gitRelease.assets | Where-Object { $_.name -match "^Git-.*-64-bit\.exe$" } | Select-Object -First 1
+Invoke-WebRequest $gitAsset.browser_download_url -OutFile "$TempDir\git.exe"
+
+Write-Host "==> Cai Git..."
+Start-Process "$TempDir\git.exe" -ArgumentList "/VERYSILENT /NORESTART" -Wait
+
+Write-Host "==> Cai FFmpeg..."
+Invoke-WebRequest "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile "$TempDir\ffmpeg.zip"
+Expand-Archive "$TempDir\ffmpeg.zip" -DestinationPath "$TempDir\ffmpeg" -Force
+$ffmpegFolder = Get-ChildItem "$TempDir\ffmpeg" -Directory | Select-Object -First 1
+$ffmpegInstall = "C:\ffmpeg"
+Remove-Item $ffmpegInstall -Recurse -Force -ErrorAction SilentlyContinue
+Move-Item $ffmpegFolder.FullName $ffmpegInstall
+
+$MachinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+if ($MachinePath -notlike "*C:\ffmpeg\bin*") {
+    [Environment]::SetEnvironmentVariable("Path", "$MachinePath;C:\ffmpeg\bin", "Machine")
+}
+
+$env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User") + ";C:\Program Files\Git\cmd;C:\ffmpeg\bin;C:\Program Files\Python312;C:\Program Files\Python312\Scripts"
+
+Write-Host "==> Kiem tra cai dat..."
+git --version
+python --version
+ffmpeg -version
+
+Write-Host "==> Clone hoac update bot..."
+if (Test-Path $BotDir) {
+    cd $BotDir
+    git pull origin main
+} else {
+    cd C:\bots
+    git clone https://github.com/Hely-T/botdiscord.git
+    cd $BotDir
+}
+
+Write-Host "==> Tao venv..."
+python -m venv .venv
+.\.venv\Scripts\activate
+
+Write-Host "==> Cai package Python..."
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install PyNaCl gTTS yt-dlp certifi
+
+Write-Host "==> Tao file .env..."
+$Token = Read-Host "Nhap DISCORD_TOKEN"
+$Owners = Read-Host "Nhap DISCORD_OWNER_IDS, cach nhau bang dau phay"
+$Prefix = Read-Host "Nhap prefix bot, vi du b"
+
+@"
+DISCORD_TOKEN=$Token
+DISCORD_OWNER_IDS=$Owners
+BOT_PREFIX=$Prefix
+SUPPORT_SERVER_URL=https://discord.com
+"@ | Out-File -Encoding utf8 ".env"
+
+Write-Host "==> Tao file start.bat..."
+@"
+@echo off
+cd /d C:\bots\botdiscord
+call .venv\Scripts\activate
+python main.py
+pause
+"@ | Out-File -Encoding ascii "start.bat"
+
+Write-Host "==> Hoan tat. Dang chay bot..."
+python main.py
+
+
+
+update code tren vps: 
+cd C:\bots\botdiscord
+git pull origin main
+.\.venv\Scripts\activate
+pip install -r requirements.txt
+python main.py

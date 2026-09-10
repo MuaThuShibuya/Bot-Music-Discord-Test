@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: discord-music-bot
+    env: python
+    plan: free
+    buildCommand: |
+      apt-get update && apt-get install -y ffmpeg
+      pip install --upgrade pip
+      pip install -r requirements.txt
+    startCommand: python music_bot.py
+    envVars:
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: BOT_PREFIX
+        value: b
+      - key: APP_NAME
+        value: Discord Music Bot
