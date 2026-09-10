@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import ctypes.util
 import importlib.util
 import math
@@ -867,6 +868,28 @@ class BotVoiceCog(commands.Cog):
         return bool(re.match(r"https?://", value.strip(), flags=re.IGNORECASE))
 
     @staticmethod
+    def _youtube_cookie_file() -> str | None:
+        encoded = os.getenv("YOUTUBE_COOKIES_B64", "").strip()
+        raw = os.getenv("YOUTUBE_COOKIES", "")
+        if not encoded and not raw:
+            return None
+
+        try:
+            cookie_text = (
+                base64.b64decode(encoded).decode("utf-8")
+                if encoded
+                else raw
+            )
+        except (ValueError, UnicodeDecodeError):
+            return None
+        if not cookie_text.strip():
+            return None
+
+        cookie_path = Path(tempfile.gettempdir()) / "youtube-cookies.txt"
+        cookie_path.write_text(cookie_text, encoding="utf-8")
+        return str(cookie_path)
+
+    @staticmethod
     def _short_text(value: str, limit: int = 90) -> str:
         value = " ".join(value.split())
         if len(value) <= limit:
@@ -970,6 +993,9 @@ class BotVoiceCog(commands.Cog):
             "extract_flat": "in_playlist",
             "noplaylist": False,
         }
+        cookie_file = self._youtube_cookie_file()
+        if cookie_file:
+            ytdl_options["cookiefile"] = cookie_file
 
         def run_extract():
             with YoutubeDL(ytdl_options) as ydl:
@@ -1005,6 +1031,9 @@ class BotVoiceCog(commands.Cog):
             "default_search": "ytsearch",
             "noplaylist": True,
         }
+        cookie_file = self._youtube_cookie_file()
+        if cookie_file:
+            ytdl_options["cookiefile"] = cookie_file
 
         def run_extract():
             with YoutubeDL(ytdl_options) as ydl:

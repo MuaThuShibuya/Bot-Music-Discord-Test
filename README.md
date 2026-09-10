@@ -52,6 +52,8 @@ The Blueprint uses a Free Web Service for testing. The bot starts a small HTTP h
 
 After deployment, configure a free uptime monitor such as UptimeRobot or cron-job.org to request the Render URL every 5-10 minutes. This can wake a sleeping Free Web Service, but it does not guarantee continuous Discord voice playback: Render can still restart the service, and local SQLite/files are ephemeral on the Free plan. Use a paid Background Worker for reliable 24/7 operation.
 
+If YouTube shows `Sign in to confirm you're not a bot`, export the YouTube cookies in Netscape format, Base64-encode the file, and add the result as the Render secret `YOUTUBE_COOKIES_B64`. The bot uses this secret for both YouTube search and stream extraction. Never commit the cookie file or put it in a public repository; cookies grant access to the associated browser session.
+
 ## Music commands
 
 - `bplay <url|query>`
