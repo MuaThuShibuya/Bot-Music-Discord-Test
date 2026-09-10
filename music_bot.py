@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 
 import discord
 from discord.ext import commands
@@ -10,6 +11,31 @@ MUSIC_COGS = ["cogs.bot.voice_cog"]
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("music_bot")
+
+
+async def health_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    try:
+        await reader.read(4096)
+        response = (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: text/plain; charset=utf-8\r\n"
+            "Content-Length: 2\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            "OK"
+        )
+        writer.write(response.encode("ascii"))
+        await writer.drain()
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+
+async def start_health_server() -> asyncio.AbstractServer:
+    port = int(os.getenv("PORT", "10000"))
+    server = await asyncio.start_server(health_handler, "0.0.0.0", port)
+    logger.info("Health server listening on port %s", port)
+    return server
 
 
 async def load_music_cogs(bot: commands.Bot) -> None:
@@ -55,9 +81,14 @@ async def main() -> None:
         if ctx.command is not None:
             await ctx.send(f"An error occurred: {error}")
 
-    async with bot:
-        await load_music_cogs(bot)
-        await bot.start(DISCORD_TOKEN)
+    health_server = await start_health_server()
+    try:
+        async with bot:
+            await load_music_cogs(bot)
+            await bot.start(DISCORD_TOKEN)
+    finally:
+        health_server.close()
+        await health_server.wait_closed()
 
 
 if __name__ == "__main__":

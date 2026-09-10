@@ -48,7 +48,9 @@ Use the included `render.yaml` and start command:
 python music_bot.py
 ```
 
-Render must provide FFmpeg in the environment. The recommended setup installs FFmpeg before starting the app, as shown in `render.yaml`.
+The Blueprint uses a Free Web Service for testing. The bot starts a small HTTP health server on `0.0.0.0:$PORT` because Render Web Services require an open port. Render must provide FFmpeg in the environment; the build command installs it before starting the app.
+
+After deployment, configure a free uptime monitor such as UptimeRobot or cron-job.org to request the Render URL every 5-10 minutes. This can wake a sleeping Free Web Service, but it does not guarantee continuous Discord voice playback: Render can still restart the service, and local SQLite/files are ephemeral on the Free plan. Use a paid Background Worker for reliable 24/7 operation.
 
 ## Music commands
 
