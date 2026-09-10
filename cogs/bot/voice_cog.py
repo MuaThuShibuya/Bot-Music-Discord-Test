@@ -876,7 +876,7 @@ class BotVoiceCog(commands.Cog):
 
         try:
             cookie_text = (
-                base64.b64decode(encoded).decode("utf-8")
+                base64.b64decode(encoded, validate=True).decode("utf-8")
                 if encoded
                 else raw
             )
@@ -888,6 +888,20 @@ class BotVoiceCog(commands.Cog):
         cookie_path = Path(tempfile.gettempdir()) / "youtube-cookies.txt"
         cookie_path.write_text(cookie_text, encoding="utf-8")
         return str(cookie_path)
+
+    @staticmethod
+    def youtube_cookie_status() -> str:
+        encoded = os.getenv("YOUTUBE_COOKIES_B64", "").strip()
+        raw = os.getenv("YOUTUBE_COOKIES", "")
+        if not encoded and not raw:
+            return "missing"
+        try:
+            cookie_path = BotVoiceCog._youtube_cookie_file()
+        except OSError:
+            return "invalid"
+        if not cookie_path:
+            return "invalid"
+        return "configured"
 
     @staticmethod
     def _short_text(value: str, limit: int = 90) -> str:

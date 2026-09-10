@@ -43,6 +43,10 @@ async def load_music_cogs(bot: commands.Bot) -> None:
         try:
             await bot.load_extension(module_name)
             logger.info("Music cog loaded: %s", module_name)
+            if module_name == "cogs.bot.voice_cog":
+                from cogs.bot.voice_cog import BotVoiceCog
+
+                logger.info("YouTube cookies: %s", BotVoiceCog.youtube_cookie_status())
         except Exception as exc:  # pragma: no cover - startup guard
             logger.exception("Failed to load %s: %s", module_name, exc)
             raise
