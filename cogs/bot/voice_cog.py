@@ -901,7 +901,18 @@ class BotVoiceCog(commands.Cog):
             return "invalid"
         if not cookie_path:
             return "invalid"
-        return "configured"
+        try:
+            cookie_lines = Path(cookie_path).read_text(encoding="utf-8").splitlines()
+        except OSError:
+            return "invalid"
+        cookie_count = sum(
+            1
+            for line in cookie_lines
+            if line.strip() and not line.lstrip().startswith("#") and ".youtube.com" in line
+        )
+        if cookie_count == 0:
+            return "invalid"
+        return f"configured ({cookie_count} YouTube cookies)"
 
     @staticmethod
     def _short_text(value: str, limit: int = 90) -> str:
