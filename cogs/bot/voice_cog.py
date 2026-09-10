@@ -407,6 +407,7 @@ class BotVoiceCog(commands.Cog):
         if self._ffmpeg_path and Path(self._ffmpeg_path).exists():
             return self._ffmpeg_path
         candidates = [
+            self._packaged_ffmpeg_path(),
             shutil.which("ffmpeg"),
             str(self._project_root() / "bin" / ("ffmpeg.exe" if os.name == "nt" else "ffmpeg")),
             str(Path("C:/ffmpeg/bin/ffmpeg.exe")),
@@ -418,6 +419,15 @@ class BotVoiceCog(commands.Cog):
                 self._ffmpeg_path = str(candidate)
                 return self._ffmpeg_path
         return None
+
+    @staticmethod
+    def _packaged_ffmpeg_path() -> str | None:
+        try:
+            from imageio_ffmpeg import get_ffmpeg_exe
+
+            return get_ffmpeg_exe()
+        except (ImportError, OSError, RuntimeError):
+            return None
 
     async def _require_ffmpeg(self, ctx) -> bool:
         if self._find_ffmpeg() is None:
